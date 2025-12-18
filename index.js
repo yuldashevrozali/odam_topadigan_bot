@@ -164,7 +164,14 @@ const BLACKLIST = [
       if (chat.id === GROUP_ID) return;
   
       // 🔹 Agar qora ro'yxatdagi so'z bo'lsa, xabarni qayta ishlama
-      if (BLACKLIST.some(word => text.includes(word))) return;
+      if (BLACKLIST.some(word => text.includes(word))) {
+    // Agar shaxsiy guruhda bo'lsa o'chir
+    if (chat.id === GROUP_ID) {
+        await message.delete();
+    }
+    // Qora ro'yxatdagi xabarni boshqa joyga forward qilma
+    return;
+}
   
       // 🔹 Agar kalit so'zlardan hech biri bo'lmasa, ham ishlama
       if (!KEYWORDS.some(k => text.includes(k))) return;
