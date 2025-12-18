@@ -112,7 +112,9 @@ const BLACKLIST = [
   "srochni yuramiz",
   "cрочни юрамиз",
   "srochni ketamiz",
-
+  "JOYIMIZ BOR",
+  "Odam pochta",
+  "ODAM POCHTA",
   "srochniy ketamiz",
   "srochniy yuramiz",
   "srochniy boramiz", 
