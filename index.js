@@ -47,6 +47,13 @@ const KEYWORDS = [
   "бормоқчиман",
 ];
 
+const BLACKLIST = [
+  "kishi kerak",
+  "avto moshina",
+  "pochta ham olamiz",
+];
+
+
 (async () => {
   console.log("🔐 Userbot ulanmoqda...");
 
@@ -54,41 +61,46 @@ const KEYWORDS = [
   console.log("✅ USERBOT ULANDA (SESSION orqali)");
 
   client.addEventHandler(
-    async (event) => {
-      const message = event.message;
-      if (!message || !message.message) return;
+  async (event) => {
+    const message = event.message;
+    if (!message || !message.message) return;
 
-      const text = message.message.toLowerCase();
-      if (!KEYWORDS.some(k => text.includes(k))) return;
+    const text = message.message.toLowerCase();
 
-      let chat;
-      try {
-        chat = await message.getChat();
-      } catch {
-        return;
-      }
-      if (!chat || chat.id === GROUP_ID) return;
+    // 🔹 Agar qora ro'yxatdagi so'z bo'lsa, xabarni qayta ishlama
+    if (BLACKLIST.some(word => text.includes(word))) return;
 
-      const sender = await message.getSender();
-      const userId = sender?.id;
+    // 🔹 Agar kalit so'zlardan hech biri bo'lmasa, ham ishlama
+    if (!KEYWORDS.some(k => text.includes(k))) return;
 
-      const username = sender?.username
-        ? `@${sender.username}`
-        : `ID:${userId}`;
+    let chat;
+    try {
+      chat = await message.getChat();
+    } catch {
+      return;
+    }
+    if (!chat || chat.id === GROUP_ID) return;
 
-      const groupName =
-        chat.title ||
-        chat.username ||
-        "Nomaʼlum guruh";
+    const sender = await message.getSender();
+    const userId = sender?.id;
 
-      let messageLink = "❌ link yo‘q";
-      if (chat.username) {
-        messageLink = `https://t.me/${chat.username}/${message.id}`;
-      }
+    const username = sender?.username
+      ? `@${sender.username}`
+      : `ID:${userId}`;
 
-      const date = new Date().toLocaleString("uz-UZ");
+    const groupName =
+      chat.title ||
+      chat.username ||
+      "Nomaʼlum guruh";
 
-      const forwardText = `💬Text: ${message.message}
+    let messageLink = "❌ link yo‘q";
+    if (chat.username) {
+      messageLink = `https://t.me/${chat.username}/${message.id}`;
+    }
+
+    const date = new Date().toLocaleString("uz-UZ");
+
+    const forwardText = `💬Text: ${message.message}
 
 👤ID: ${userId}
 ⏰Sana: ${date}
@@ -100,24 +112,25 @@ const KEYWORDS = [
 ${messageLink}
 `;
 
-      await client.sendMessage(GROUP_ID, { message: forwardText });
+    // 📤 Guruhga yuborish
+    await client.sendMessage(GROUP_ID, { message: forwardText });
 
-      // 🗑 admin bo‘lsa o‘chir
-      try {
-        const me = await client.getMe();
-        const participant = await client.getParticipant(chat, me.id);
-        const role = participant?.participant?.className;
+    // 🗑 admin bo‘lsa o‘chir
+    try {
+      const me = await client.getMe();
+      const participant = await client.getParticipant(chat, me.id);
+      const role = participant?.participant?.className;
 
-        if (
-          role === "ChannelParticipantAdmin" ||
-          role === "ChannelParticipantCreator"
-        ) {
-          await message.delete();
-        }
-      } catch {}
-    },
-    new NewMessage({})
-  );
+      if (
+        role === "ChannelParticipantAdmin" ||
+        role === "ChannelParticipantCreator"
+      ) {
+        await message.delete();
+      }
+    } catch {}
+  },
+  new NewMessage({})
+);
 })();
 
 
