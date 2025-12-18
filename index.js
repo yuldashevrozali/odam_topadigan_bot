@@ -33,24 +33,90 @@ const client = new TelegramClient(
 );
 
 const KEYWORDS = [
-  "taksi kerak",
-  "taksi bormi",
-  "bormoqchiman",
-  "taksi chaqir",
-  "yuk bor",
-  "yuk tashish",
-  "kishi bor",
-  "odam bor",
-  "pochta bor",
-  "такси керак",
-  "такси борми",
-  "бормоқчиман",
+  // ===== TAKSI KERAK =====
+  "taksi kerak", "taxi kerak", "такси керак", "тaksi kerak",
+  "taksi kerek", "taksi kere", "taxi kerek",
+  "taksi lazim", "taksi zarur", "taksi topiladi",
+  "menga taksi kerak", "menga taxi kerak",
+  "taksi plz", "taxi pls", "taxi please",
+
+  // ===== TAKSI BORMI =====
+  "taksi bormi", "taxi bormi", "такси борми",
+  "taksi bormu", "taksi bormi?",
+  "taksi yo‘qmi", "taksi topiladimi",
+  "yaqin taksi bormi", "bo‘sh taksi bormi",
+  "taksi bormi hozir", "hozir taksi bormi",
+
+  // ===== BORISH / KETISH =====
+  "bormoqchiman", "boraman", "ketaman",
+  "borishim kerak", "ketishim kerak",
+  "бормоқчиман", "кетаман",
+  "chiqishim kerak", "yo‘lga chiqaman",
+  "tez borishim kerak", "shoshilib ketishim kerak",
+
+  // ===== TAKSI CHAQIRISH =====
+  "taksi chaqir", "taxi chaqir",
+  "taksi chaqiring", "taksi chaqirsangiz",
+  "taksi olib bering", "taksi yuboring",
+  "taksi chaqirib bering",
+  "taksi topib bering",
+
+  // ===== YUK / POCHTA =====
+  "yuk bor", "yuk tashish", "yuk yetkazish",
+  "yuk tashish kerak", "yuk olib borish kerak",
+  "kichik yuk bor", "katta yuk bor",
+  "pochta bor", "pochta tashish",
+  "pochta jo‘natish", "pochta yetkazish",
+  "pochta olib borish kerak",
+  "yuk bormi tashiydigan",
+
+  // ===== ODAM / KISHI SONI =====
+  "odam bor", "kishi bor",
+  "1 kishi", "2 kishi", "3 kishi", "4 kishi", "5 kishi", "6 kishi",
+  "ikki kishimiz", "uch kishimiz",
+  "ikki odam", "uch odam",
+  "o‘zim boraman", "bir o‘zim",
+
+  // ===== SHOSHILINCH / TEZ =====
+  "srochni", "srochni ketish",
+  "srochni borish kerak",
+  "shoshilinch", "tezkor",
+  "tez ketish kerak", "tez borish kerak",
+  "urgent", "express", "asap",
+
+  // ===== UMUMIY / QISQA =====
+  "taksi", "taxi",
+  "yuk", "pochta",
+  "haydovchi kerak",
+  "mashina kerak",
+  "avto kerak",
+
+  // ===== XATOLI / ARALASH YOZILISHLAR =====
+  "taksi ker", "taxi ker",
+  "taksi kerekk", "taksi kera",
+  "такси кера", "такси кер",
+  "yuk boru", "odam boru",
+  "taksi bormi aka",
+  "taksi kerak aka",
+  "taksi bor mi"
 ];
+
 
 const BLACKLIST = [
   "kishi kerak",
+  "киши керак",
+  "авто мошина",
   "avto moshina",
   "pochta ham olamiz",
+  "почта ҳам оламиз",
+  "srochni yuramiz",
+  "cрочни юрамиз",
+  "srochni ketamiz",
+
+  "srochniy ketamiz",
+  "srochniy yuramiz",
+  "srochniy boramiz", 
+
 ];
 
 
