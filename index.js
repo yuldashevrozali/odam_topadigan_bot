@@ -116,6 +116,10 @@ const BLACKLIST = [
   "srochniy ketamiz",
   "srochniy yuramiz",
   "srochniy boramiz", 
+  "poshda olamiz",
+  "POSHDA OLAMIZ",
+  "SROCHNI GETAMIZ",
+  "odam qo'shish"
 
 ];
 
