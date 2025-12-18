@@ -121,7 +121,15 @@ const BLACKLIST = [
   "poshda olamiz",
   "POSHDA OLAMIZ",
   "SROCHNI GETAMIZ",
-  "odam qo'shish"
+  "odam qo'shish",
+  "1 ODAM GARAK",
+  "2 ODAM GARAK",
+  "3 ODAM GARAK",
+  "1 ODAM KERAK",
+  "pochta olaman",
+  "почта оламан",
+  "yuk olaman",
+  "юк оламан"
 
 ];
 
