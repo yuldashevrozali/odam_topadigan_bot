@@ -48,10 +48,9 @@ const KEYWORDS = [
   "taksi bormi hozir", "hozir taksi bormi",
 
   // ===== BORISH / KETISH =====
-  "bormoqchiman", "boraman", "ketaman",
+  "bormoqchiman",
   "borishim kerak", "ketishim kerak",
-  "бормоқчиман", "кетаман",
-  "chiqishim kerak", "yo‘lga chiqaman",
+  "бормоқчиман", "yo‘lga chiqaman",
   "tez borishim kerak", "shoshilib ketishim kerak",
 
   // ===== TAKSI CHAQIRISH =====
@@ -74,15 +73,13 @@ const KEYWORDS = [
   "odam bor", "kishi bor",
   "1 kishi", "2 kishi", "3 kishi", "4 kishi", "5 kishi", "6 kishi",
   "ikki kishimiz", "uch kishimiz",
-  "ikki odam", "uch odam",
-  "o‘zim boraman", "bir o‘zim",
+  "o‘zim boraman",
 
   // ===== SHOSHILINCH / TEZ =====
   "srochni", "srochni ketish",
   "srochni borish kerak",
-  "shoshilinch", "tezkor",
+  "shoshilinch ketishim kerak", 
   "tez ketish kerak", "tez borish kerak",
-  "urgent", "express", "asap",
 
   // ===== UMUMIY / QISQA =====
   "taksi", "taxi",
