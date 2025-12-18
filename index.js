@@ -105,6 +105,7 @@ const BLACKLIST = [
   "авто мошина",
   "avto moshina",
   "Moshin bor",
+  "pochta olomon",
   "pochta ham olamiz",
   "почта ҳам оламиз",
   "srochni yuramiz",
