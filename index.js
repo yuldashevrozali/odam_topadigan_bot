@@ -119,3 +119,17 @@ ${messageLink}
     new NewMessage({})
   );
 })();
+
+
+// ♻️ AUTO RECONNECT (Render fix)
+setInterval(async () => {
+  try {
+    if (!client.connected) {
+      console.log("♻️ Reconnecting Telegram...");
+      await client.connect();
+      console.log("✅ Reconnected");
+    }
+  } catch (e) {
+    console.log("❌ Reconnect error:", e.message);
+  }
+}, 60 * 1000); // har 1 daqiqa
