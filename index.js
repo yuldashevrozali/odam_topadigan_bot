@@ -140,25 +140,34 @@ const BLACKLIST = [
   console.log("✅ USERBOT ULANDA (SESSION orqali)");
 
   client.addEventHandler(
-  async (event) => {
-    const message = event.message;
-    if (!message || !message.message) return;
-
-    const text = message.message.toLowerCase();
-
-    // 🔹 Agar qora ro'yxatdagi so'z bo'lsa, xabarni qayta ishlama
-    if (BLACKLIST.some(word => text.includes(word))) return;
-
-    // 🔹 Agar kalit so'zlardan hech biri bo'lmasa, ham ishlama
-    if (!KEYWORDS.some(k => text.includes(k))) return;
-
-    let chat;
-    try {
-      chat = await message.getChat();
-    } catch {
-      return;
-    }
-    if (!chat || chat.id === GROUP_ID) return;
+    async (event) => {
+      const message = event.message;
+      if (!message || !message.message) return;
+  
+      const text = message.message.toLowerCase();
+  
+      let chat;
+      try {
+        chat = await message.getChat();
+      } catch {
+        return;
+      }
+      if (!chat) return;
+  
+      // 🔹 Agar shaxsiy guruhda qora ro'yxatdagi so'z bo'lsa, o'chir
+      if (chat.id === GROUP_ID && BLACKLIST.some(word => text.includes(word))) {
+        await message.delete();
+        return;
+      }
+  
+      // 🔹 Agar shaxsiy guruhda bo'lsa, boshqa hech narsa qilma
+      if (chat.id === GROUP_ID) return;
+  
+      // 🔹 Agar qora ro'yxatdagi so'z bo'lsa, xabarni qayta ishlama
+      if (BLACKLIST.some(word => text.includes(word))) return;
+  
+      // 🔹 Agar kalit so'zlardan hech biri bo'lmasa, ham ishlama
+      if (!KEYWORDS.some(k => text.includes(k))) return;
 
     const sender = await message.getSender();
     const userId = sender?.id;
