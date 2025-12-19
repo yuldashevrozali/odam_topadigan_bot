@@ -41,7 +41,7 @@ const KEYWORDS = [
   "odam bor","kishi bor","1 kishi","2 kishi","3 kishi","4 kishi","5 kishi",
   "ikki kishimiz","uch kishimiz","o‘zim boraman",
   "srochni","shoshilinch","tez ketish kerak","tez borish kerak",
-  "taksi","taxi","yuk","pochta","haydovchi kerak","mashina kerak",
+  "taksi","taxi kerak","yuk","pochta","haydovchi kerak","mashina kerak",
   "taksi ker","taxi ker","taksi kera","yuk boru","odam boru",
   "taksi kerak aka","taksi bormi aka",
 ];
@@ -55,7 +55,7 @@ const BLACKLIST = [
   "odam qo'shish","1 odam kerak","2 odam kerak","3 odam kerak",
   "joyimiz bor","odam pochta","poshda olamiz",
   "1 odam garak","2 odam garak","3 odam garak",
-  "srochni getamiz","moshin bor","pochta olomon"
+  "srochni getamiz","moshin bor","pochta olomon","taxi bar","1 kishi kere","yuramiz","Pochta olamiz"
 ];
 
 // ===== START =====
