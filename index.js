@@ -288,7 +288,7 @@ const KEYWORDS = [
   "srochni","shoshilinch","tez ketish kerak","tez borish kerak",
   "taksi","taxi","yuk","pochta","haydovchi kerak","mashina kerak",
   "taksi ker","taxi ker","taksi kera","yuk boru","odam boru",
-  "taksi kerak aka","taksi bormi aka","Moshin bor","pochta olomon"
+  "taksi kerak aka","taksi bormi aka",
 ];
 
 // ===== BLACKLIST =====
@@ -299,7 +299,7 @@ const BLACKLIST = [
   "srochni yuramiz","srochni ketamiz","srochniy yuramiz",
   "odam qo'shish","1 odam kerak","2 odam kerak","3 odam kerak",
   "joyimiz bor","odam pochta","poshda olamiz","1 ODAM GARAK",
-  "2 ODAM GARAK","3 ODAM GARAK","SROCHNI GETAMIZ",
+  "2 ODAM GARAK","3 ODAM GARAK","SROCHNI GETAMIZ","Moshin bor","pochta olomon"
 ];
 
 // ===== START =====
@@ -309,81 +309,66 @@ const BLACKLIST = [
   console.log("✅ USERBOT ULANDA");
 
   client.addEventHandler(async (event) => {
-    const message = event.message;
-    if (!message?.message) return;
+  const message = event.message;
+  if (!message?.message) return;
 
-    const text = message.message.toLowerCase().trim();
-    let chat;
+  const text = message.message.toLowerCase().trim();
 
-    try {
-      chat = await message.getChat();
-    } catch {
-      return;
-    }
-    if (!chat) return;
+  let chat;
+  try {
+    chat = await message.getChat();
+  } catch {
+    return;
+  }
+  if (!chat) return;
 
-    const hasKeyword = KEYWORDS.some(k => text.includes(k));
-    const hasBlacklist = BLACKLIST.some(b => text.includes(b));
+  const hasKeyword = KEYWORDS.some(k => text.includes(k));
+  const hasBlacklist = BLACKLIST.some(b => text.includes(b));
 
-    // 🚫 BLACKLIST HAR DOIM USTUN
-    if (hasBlacklist) {
-      if (chat.id === GROUP_ID) {
-        await message.delete(); // shaxsiy guruhda o‘chir
-      }
-      return; // ❗ hech qachon davom etmaydi
-    }
+  // 🔒 O‘z guruhimizdan kelgan bo‘lsa — o‘tma
+  if (chat.id === GROUP_ID) return;
 
-    // 🔒 Shaxsiy guruhda boshqa ish yo‘q
-    if (chat.id === GROUP_ID) return;
+  // ❌ Keyword yo‘q — o‘tma
+  if (!hasKeyword) return;
 
-    // ❌ Keyword yo‘q bo‘lsa o‘tma
-    if (!hasKeyword) return;
+  // ⚠️ Keyword bor, lekin blacklist ham bor — SKIP
+  if (hasBlacklist) return;
 
-    // ===== MAʼLUMOT YIG‘ISH =====
-    const sender = await message.getSender();
-    const userId = sender?.id;
-    const username = sender?.username ? `@${sender.username}` : `ID:${userId}`;
-    const groupName = chat.title || chat.username || "Nomaʼlum guruh";
+  // ===== MAʼLUMOT =====
+  const sender = await message.getSender();
+  const userId = sender?.id;
+  const username = sender?.username ? `@${sender.username}` : `ID:${userId}`;
+  const groupName = chat.title || chat.username || "Nomaʼlum guruh";
 
-    let messageLink = "❌ link yo‘q";
-    if (chat.username) {
-      messageLink = `https://t.me/${chat.username}/${message.id}`;
-    }
+  let messageLink = "❌ link yo‘q";
+  if (chat.username) {
+    messageLink = `https://t.me/${chat.username}/${message.id}`;
+  }
 
-    const date = new Date().toLocaleString("uz-UZ");
+  const date = new Date().toLocaleString("uz-UZ");
 
-    const forwardText = `💬 Text:
+  const forwardText = `🚖 *YANGI MIJOZ*
+
+💬 *Xabar:*
 ${message.message}
 
-👤 ID: ${userId}
-⏰ Sana: ${date}
+👤 *User:* ${username}
+🆔 *ID:* ${userId}
+👥 *Guruh:* ${groupName}
+⏰ *Sana:* ${date}
 
-🔗 Username: ${username}
-🔗 Guruh: ${groupName}
-
-✉️ Xabarga o‘tish:
+🔗 *Xabar linki:*
 ${messageLink}
 `;
 
-    // 📤 FORWARD
-    await client.sendMessage(GROUP_ID, { message: forwardText });
+  await client.sendMessage(GROUP_ID, {
+    message: forwardText,
+    parseMode: "markdown"
+  });
 
-    // 🗑 Admin bo‘lsa xabarni o‘chir
-    try {
-      const me = await client.getMe();
-      const participant = await client.getParticipant(chat, me.id);
-      const role = participant?.participant?.className;
+}, new NewMessage({}));
 
-      if (
-        role === "ChannelParticipantAdmin" ||
-        role === "ChannelParticipantCreator"
-      ) {
-        await message.delete();
-      }
-    } catch {}
-
-  }, new NewMessage({}));
-})();
+})(); 
 
 // ===== AUTO RECONNECT =====
 setInterval(async () => {
