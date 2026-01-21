@@ -131,7 +131,7 @@ ${messageLink}
 
     await client.sendMessage(GROUP_ID, { message: forwardText });
 
-    console.log("✅ FORWARDED | keyword:", keywordHit);
+    console.log("✅ FORWARDEd | keyword:", keywordHit);
 
   }, new NewMessage({}));
 
