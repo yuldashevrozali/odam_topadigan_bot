@@ -8,7 +8,7 @@ const { NewMessage } = require("telegram/events");
 // ===== ENV =====
 const apiId = Number(process.env.API_ID);
 const apiHash = process.env.API_HASH;
-const GROUP_ID = process.env.GROUP_ID; // string qilib oldik
+const GROUP_ID = process.env.GROUP_ID; // string
 const SESSION_STRING = process.env.SESSION_STRING;
 
 if (!SESSION_STRING) {
@@ -19,9 +19,7 @@ if (!SESSION_STRING) {
 const app = express();
 app.get("/", (req, res) => res.send("USERBOT ALIVE ✅"));
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log("🌐 Web server alive on port", PORT)
-);
+app.listen(PORT, () => console.log("🌐 Web server alive on port", PORT));
 
 // ===== USERBOT =====
 const client = new TelegramClient(
@@ -51,12 +49,23 @@ const BLACKLIST = [
   "kishi kerak","киши керак","avto moshina","авто мошина",
   "pochta olaman","почта оламан","yuk olaman","юк оламан",
   "pochta ham olamiz","почта ҳам оламиз",
-  "srochni yuramiz","srochni ketamiz","srochniy yuramiz","SROCHNIGA YURAMIZ",
-  "odam qo'shish","1 odam kerak","2 odam kerak","3 odam kerak","ODAM KERAK","Manzildan","AVTO",
-  "joyimiz bor","odam pochta","poshda olamiz","ONIX taksi","Taksi Bar","Adam Poshta Bolsa","1 kishi kera","DAROMAD TOPISHNI XOHLAYSIZMI?","DAROMAD TOPISHNI XOHLAYSIZMI","POSHTA OLAMIZ","POSHTA OLAMAN","Taksi bor","Taksi bormi","Yuk bor","Yuk bormi",
-  "1 odam garak","2 odam garak","3 odam garak","POCHTA HAM OLAMAN","jonaymiz","pochtaham olamiz","3 kishi  kerak","4 kishi kerak","5 kishi kerak","2 kishi kk","ODAM KERAK","ADAM POCHTA BOLSA",
-  "srochni getamiz","moshin bor","pochta olomon","ODAM OLAMIZ","YURAMIZ","AYOLLAR BOR","1 TA  KAM", "#YURAMIZ","POCHTA XIZMATI BOR","YURILADI","TAXI BOR","POCHTA HAM OLAMIZ","mashin bor","2 KISHI KERAK","TAXI BAR","1 KISHI KERE","pochta xam olamiz","POSHTAXAM OLAMIZ","2 KISHI KK","1 kishi kere","YURAMIZ","pochta olamiz","POCHTA OLAMIZ"
+  "srochni yuramiz","srochni ketamiz","srochniy yuramiz","srochniga yuramiz",
+  "odam qo'shish","1 odam kerak","2 odam kerak","3 odam kerak","odam kerak","manzildan","avto",
+  "joyimiz bor","odam pochta","poshda olamiz","onix taksi","taksi bar","adam poshta bolsa","1 kishi kera",
+  "daromad topishni xohlaysizmi?","daromad topishni xohlaysizmi",
+  "poshta olamiz","poshta olaman","taksi bor","taksi bormi","yuk bor","yuk bormi",
+  "1 odam garak","2 odam garak","3 odam garak","pochta ham olaman","jonaymiz","pochtaham olamiz",
+  "3 kishi kerak","4 kishi kerak","5 kishi kerak","2 kishi kk","adam pochta bolsa",
+  "srochni getamiz","moshin bor","pochta olomon","odam olamiz","yuramiz","ayollar bor","1 ta kam",
+  "#yuramiz","pochta xizmati bor","yuriladi","taxi bor","pochta ham olamiz","mashin bor",
+  "2 kishi kerak","taxi bar","1 kishi kere","pochta xam olamiz","poshtaxam olamiz","2 kishi kk",
+  "1 kishi kere","pochta olamiz","pochta olamiz"
 ];
+
+// ===== helper: match topish =====
+function findMatch(text, arr) {
+  return arr.find((x) => text.includes(x));
+}
 
 // ===== START =====
 (async () => {
@@ -79,13 +88,19 @@ const BLACKLIST = [
     if (!chat) return;
 
     // 🔒 O‘z guruhimizdan kelgan bo‘lsa — SKIP
-    if (String(chat.id) === GROUP_ID) return;
+    if (String(chat.id) === String(GROUP_ID)) return;
 
-    const hasKeyword = KEYWORDS.some(k => text.includes(k));
-    if (!hasKeyword) return;
+    // 1) KEYWORDS bo'lishi shart
+    const keywordHit = findMatch(text, KEYWORDS);
+    if (!keywordHit) return;
 
-    const hasBlacklist = BLACKLIST.some(b => text.includes(b));
-    if (hasBlacklist) return;
+    // 2) BLACKLIST'dan 1 ta bo'lsa ham olma (skip)
+    const blacklistHit = findMatch(text, BLACKLIST);
+    if (blacklistHit) {
+      // xohlasang log qilib ko'rasan qaysi so'z urdi
+      console.log("⛔ BLACKLIST HIT:", blacklistHit, "| TEXT:", text);
+      return;
+    }
 
     // ===== MAʼLUMOT =====
     const sender = await message.getSender();
@@ -115,6 +130,8 @@ ${messageLink}
 `;
 
     await client.sendMessage(GROUP_ID, { message: forwardText });
+
+    console.log("✅ FORWARDED | keyword:", keywordHit);
 
   }, new NewMessage({}));
 
