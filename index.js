@@ -55,7 +55,7 @@ const BLACKLIST = [
   "odam qo'shish","1 odam kerak","2 odam kerak","3 odam kerak","ODAM KERAK","Manzildan","AVTO",
   "joyimiz bor","odam pochta","poshda olamiz","ONIX taksi","Taksi Bar","Adam Poshta Bolsa","1 kishi kera","DAROMAD TOPISHNI XOHLAYSIZMI?","DAROMAD TOPISHNI XOHLAYSIZMI","POSHTA OLAMIZ","POSHTA OLAMAN","Taksi bor","Taksi bormi","Yuk bor","Yuk bormi",
   "1 odam garak","2 odam garak","3 odam garak","POCHTA HAM OLAMAN","jonaymiz","pochtaham olamiz","3 kishi  kerak","4 kishi kerak","5 kishi kerak","2 kishi kk","ODAM KERAK","ADAM POCHTA BOLSA",
-  "srochni getamiz","moshin bor","pochta olomon","TAXI BOR","POCHTA HAM OLAMIZ","mashin bor","2 KISHI KERAK","TAXI BAR","1 KISHI KERE","pochta xam olamiz","POSHTAXAM OLAMIZ","2 KISHI KK","1 kishi kere","YURAMIZ","pochta olamiz","POCHTA OLAMIZ"
+  "srochni getamiz","moshin bor","pochta olomon","ODAM OLAMIZ","YURAMIZ","AYOLLAR BOR","1 TA  KAM", "#YURAMIZ","POCHTA XIZMATI BOR","YURILADI","TAXI BOR","POCHTA HAM OLAMIZ","mashin bor","2 KISHI KERAK","TAXI BAR","1 KISHI KERE","pochta xam olamiz","POSHTAXAM OLAMIZ","2 KISHI KK","1 kishi kere","YURAMIZ","pochta olamiz","POCHTA OLAMIZ"
 ];
 
 // ===== START =====
