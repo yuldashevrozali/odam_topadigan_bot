@@ -41,7 +41,7 @@ const KEYWORDS = [
   "srochni","shoshilinch","tez ketish kerak","tez borish kerak",
   "taksi","taxi kerak","yuk","pochta bor","haydovchi kerak","mashina kerak",
   "taksi ker","taxi ker","taksi kera","yuk boru","odam boru",
-  "taksi kerak aka","taksi bormi aka",
+  "taksi kerak aka","taksi bormi aka","кетишим керак","боришим керак",
 ];
 
 // ===== BLACKLIST =====
@@ -59,7 +59,7 @@ const BLACKLIST = [
   "srochni getamiz","moshin bor","pochta olomon","odam olamiz","yuramiz","ayollar bor","1 ta kam",
   "#yuramiz","pochta xizmati bor","yuriladi","taxi bor","pochta ham olamiz","mashin bor",
   "2 kishi kerak","taxi bar","1 kishi kere","pochta xam olamiz","poshtaxam olamiz","2 kishi kk",
-  "1 kishi kere","pochta olamiz","pochta olamiz","ПОЧТА ОЛАМИЗ","ISHCHI KERAK","ta kam","TA KAM",
+  "1 kishi kere","pochta olamiz","pochta olamiz","ODAM KAM","ПОЧТА ОЛАМИЗ","ISHCHI KERAK","ta kam","TA KAM",
 ];
 
 // ===== helper: match topish =====
