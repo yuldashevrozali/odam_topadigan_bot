@@ -124,7 +124,7 @@ const forwardText = `1. ID: ${userId}
 3. Foydalanuvchi: ${username}
 4. Telefon raqami: ${phone}
 5. Guruh: ${groupUsername}
-5. ${message.message}`;
+6. Xabar: ${message.message}`;
 
 await client.sendMessage(GROUP_ID, { message: forwardText });
 
