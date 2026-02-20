@@ -48,7 +48,7 @@ const KEYWORDS = [
 const BLACKLIST = [
   "kishi kerak","киши керак","avto moshina","авто мошина",
   "pochta olaman","почта оламан","yuk olaman","юк оламан",
-  "pochta ham olamiz","почта ҳам оламиз",
+  "pochta ham olamiz","почта ҳам оламиз","mahsulot","БАГАЧ БОР","Aksiya narxi","1 TA ODAM KAM",
   "srochni yuramiz","srochni ketamiz","srochniy yuramiz","srochniga yuramiz",
   "odam qo'shish","1 odam kerak","2 odam kerak","3 odam kerak","odam kerak","manzildan","avto",
   "joyimiz bor","odam pochta","poshda olamiz","onix taksi","taksi bar","adam poshta bolsa","1 kishi kera",
