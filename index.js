@@ -103,33 +103,30 @@ function findMatch(text, arr) {
     }
 
     // ===== MAʼLUMOT =====
-    const sender = await message.getSender();
-    const userId = sender?.id;
-    const username = sender?.username ? `@${sender.username}` : `ID:${userId}`;
-    const groupName = chat.title || chat.username || "Nomaʼlum guruh";
+    // ===== MAʼLUMOT =====
+const sender = await message.getSender();
+const userId = sender?.id;
+const username = sender?.username ? `@${sender.username}` : "yo'q";
+const firstName = sender?.firstName || "";
+const lastName = sender?.lastName || "";
+const fullName = [firstName, lastName].filter(Boolean).join(" ") || "Noma'lum";
+const phone = sender?.phone ? `+${sender.phone}` : "yo'q";
+const groupName = chat.title || chat.username || "Nomaʼlum guruh";
+const groupUsername = chat.username ? `@${chat.username}` : `ID:${chat.id}`;
 
-    let messageLink = "❌ link yo‘q";
-    if (chat.username) {
-      messageLink = `https://t.me/${chat.username}/${message.id}`;
-    }
+let messageLink = "❌ link yo'q";
+if (chat.username) {
+  messageLink = `https://t.me/${chat.username}/${message.id}`;
+}
 
-    const date = new Date().toLocaleString("uz-UZ");
+const forwardText = `1. ID: ${userId}
+2. Ismi: ${fullName}
+3. Foydalanuvchi: ${username}
+4. Telefon raqami: ${phone}
+5. Guruh: ${groupUsername}
+5. ${message.message}`;
 
-    const forwardText = `🚖 YANGI MIJOZ
-
-💬 Xabar:
-${message.message}
-
-👤 User: ${username}
-🆔 ID: ${userId}
-👥 Guruh: ${groupName}
-⏰ Sana: ${date}
-
-🔗 Xabar linki:
-${messageLink}
-`;
-
-    await client.sendMessage(GROUP_ID, { message: forwardText });
+await client.sendMessage(GROUP_ID, { message: forwardText });
 
     console.log("✅ FORWARDEd | keyword:", keywordHit);
 
