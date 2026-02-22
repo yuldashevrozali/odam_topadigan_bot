@@ -5,29 +5,11 @@ const { TelegramClient } = require("telegram");
 const { StringSession } = require("telegram/sessions");
 const { NewMessage } = require("telegram/events");
 
-// ===== ENV =====
-const apiId = Number(process.env.API_ID);
-const apiHash = process.env.API_HASH;
-const GROUP_ID = process.env.GROUP_ID; // string
-const SESSION_STRING = process.env.SESSION_STRING;
-
-if (!SESSION_STRING) {
-  throw new Error("❌ SESSION_STRING yo‘q. Render’da ishlamaydi.");
-}
-
-// ===== WEB SERVER =====
+// ===== WEB SERVER (Render healthcheck) =====
 const app = express();
-app.get("/", (req, res) => res.send("USERBOT ALIVE ✅"));
+app.get("/", (req, res) => res.send("USERBOTS ALIVE ✅"));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("🌐 Web server alive on port", PORT));
-
-// ===== USERBOT =====
-const client = new TelegramClient(
-  new StringSession(SESSION_STRING),
-  apiId,
-  apiHash,
-  { connectionRetries: 5 }
-);
 
 // ===== KEYWORDS =====
 const KEYWORDS = [
@@ -62,87 +44,124 @@ const BLACKLIST = [
   "1 kishi kere","pochta olamiz","pochta olamiz","ODAM KAM","ПОЧТА ОЛАМИЗ","ISHCHI KERAK","ta kam","TA KAM",
 ];
 
-// ===== helper: match topish =====
+// ===== helper =====
 function findMatch(text, arr) {
   return arr.find((x) => text.includes(x));
 }
 
-// ===== START =====
-(async () => {
-  console.log("🔐 Userbot ulanmoqda...");
-  await client.connect();
-  console.log("✅ USERBOT ULANDA");
+// ===== factory: bitta userbot start qiladigan funksiya =====
+function makeEnv(prefix) {
+  const apiId = Number(process.env[`API_ID_${prefix}`]);
+  const apiHash = process.env[`API_HASH_${prefix}`];
+  const groupId = process.env[`GROUP_ID_${prefix}`]; // string
+  const sessionString = process.env[`SESSION_STRING_${prefix}`];
 
-  client.addEventHandler(async (event) => {
-    const message = event.message;
-    if (!message?.message) return;
+  if (!apiId || !apiHash || !groupId || !sessionString) {
+    throw new Error(
+      `❌ ENV yetarli emas: API_ID_${prefix}, API_HASH_${prefix}, GROUP_ID_${prefix}, SESSION_STRING_${prefix}`
+    );
+  }
 
-    const text = message.message.toLowerCase().trim();
-
-    let chat;
-    try {
-      chat = await message.getChat();
-    } catch {
-      return;
-    }
-    if (!chat) return;
-
-    // 🔒 O‘z guruhimizdan kelgan bo‘lsa — SKIP
-    if (String(chat.id) === String(GROUP_ID)) return;
-
-    // 1) KEYWORDS bo'lishi shart
-    const keywordHit = findMatch(text, KEYWORDS);
-    if (!keywordHit) return;
-
-    // 2) BLACKLIST'dan 1 ta bo'lsa ham olma (skip)
-    const blacklistHit = findMatch(text, BLACKLIST);
-    if (blacklistHit) {
-      // xohlasang log qilib ko'rasan qaysi so'z urdi
-      console.log("⛔ BLACKLIST HIT:", blacklistHit, "| TEXT:", text);
-      return;
-    }
-
-    // ===== MAʼLUMOT =====
-    // ===== MAʼLUMOT =====
-const sender = await message.getSender();
-const userId = sender?.id;
-const username = sender?.username ? `@${sender.username}` : "yo'q";
-const firstName = sender?.firstName || "";
-const lastName = sender?.lastName || "";
-const fullName = [firstName, lastName].filter(Boolean).join(" ") || "Noma'lum";
-const phone = sender?.phone ? `+${sender.phone}` : "yo'q";
-const groupName = chat.title || chat.username || "Nomaʼlum guruh";
-const groupUsername = chat.username ? `@${chat.username}` : `ID:${chat.id}`;
-
-let messageLink = "❌ link yo'q";
-if (chat.username) {
-  messageLink = `https://t.me/${chat.username}/${message.id}`;
+  return { apiId, apiHash, groupId, sessionString };
 }
 
-const forwardText = `1. ID: ${userId}
+async function startUserbot(prefix) {
+  const { apiId, apiHash, groupId, sessionString } = makeEnv(prefix);
+
+  const client = new TelegramClient(
+    new StringSession(sessionString),
+    apiId,
+    apiHash,
+    { connectionRetries: 5 }
+  );
+
+  console.log(`🔐 [BOT-${prefix}] ulanmoqda...`);
+  await client.connect();
+  console.log(`✅ [BOT-${prefix}] ULANDA`);
+
+  client.addEventHandler(async (event) => {
+    try {
+      const message = event.message;
+      if (!message?.message) return;
+
+      const text = message.message.toLowerCase().trim();
+
+      let chat;
+      try {
+        chat = await message.getChat();
+      } catch {
+        return;
+      }
+      if (!chat) return;
+
+      // 🔒 O‘z guruhimizdan kelgan bo‘lsa — SKIP (har bot o‘z GROUP_ID sini tekshiradi)
+      if (String(chat.id) === String(groupId)) return;
+
+      // 1) KEYWORDS bo'lishi shart
+      const keywordHit = findMatch(text, KEYWORDS);
+      if (!keywordHit) return;
+
+      // 2) BLACKLIST'dan 1 ta bo'lsa ham olma (skip)
+      const blacklistHit = findMatch(text, BLACKLIST);
+      if (blacklistHit) {
+        console.log(`⛔ [BOT-${prefix}] BLACKLIST HIT:`, blacklistHit, "| TEXT:", text);
+        return;
+      }
+
+      // ===== MAʼLUMOT =====
+      const sender = await message.getSender();
+      const userId = sender?.id;
+      const username = sender?.username ? `@${sender.username}` : "yo'q";
+      const firstName = sender?.firstName || "";
+      const lastName = sender?.lastName || "";
+      const fullName = [firstName, lastName].filter(Boolean).join(" ") || "Noma'lum";
+      const phone = sender?.phone ? `+${sender.phone}` : "yo'q";
+      const groupUsername = chat.username ? `@${chat.username}` : `ID:${chat.id}`;
+
+      let messageLink = "❌ link yo'q";
+      if (chat.username) {
+        messageLink = `https://t.me/${chat.username}/${message.id}`;
+      }
+
+      const forwardText = `[BOT-${prefix}]
+1. ID: ${userId}
 2. Ismi: ${fullName}
 3. Foydalanuvchi: ${username}
 4. Telefon raqami: ${phone}
 5. Guruh: ${groupUsername}
-6. Xabar: ${message.message}`;
+6. Link: ${messageLink}
+7. Xabar: ${message.message}`;
 
-await client.sendMessage(GROUP_ID, { message: forwardText });
-
-    console.log("✅ FORWARDEd | keyword:", keywordHit);
-
+      await client.sendMessage(groupId, { message: forwardText });
+      console.log(`✅ [BOT-${prefix}] FORWARDED | keyword:`, keywordHit);
+    } catch (e) {
+      console.log(`❌ [BOT-${prefix}] handler error:`, e?.message || e);
+    }
   }, new NewMessage({}));
 
-})();
-
-// ===== AUTO RECONNECT =====
-setInterval(async () => {
-  try {
-    if (!client.connected) {
-      console.log("♻️ Reconnecting Telegram...");
-      await client.connect();
-      console.log("✅ Reconnected");
+  // ===== AUTO RECONNECT (har bot alohida) =====
+  setInterval(async () => {
+    try {
+      if (!client.connected) {
+        console.log(`♻️ [BOT-${prefix}] Reconnecting Telegram...`);
+        await client.connect();
+        console.log(`✅ [BOT-${prefix}] Reconnected`);
+      }
+    } catch (e) {
+      console.log(`❌ [BOT-${prefix}] Reconnect error:`, e?.message || e);
     }
-  } catch (e) {
-    console.log("❌ Reconnect error:", e.message);
-  }
-}, 60 * 1000);
+  }, 60 * 1000);
+
+  return client;
+}
+
+// ===== START 2 TA BOT =====
+(async () => {
+  // 1-bot
+  await startUserbot("1");
+
+  // 2-bot
+  await startUserbot("2");
+
+  console.log("🚀 Ikki userbot ham ishga tushdi.");
+})();
