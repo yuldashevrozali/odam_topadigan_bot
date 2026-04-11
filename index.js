@@ -86,6 +86,12 @@ async function startUserbot(prefix) {
 
       const text = message.message.toLowerCase().trim();
 
+      // 0) Agar xabar 130 belgidan uzun bo'lsa — SKIP
+      if (text.length > 130) {
+        console.log(`⛔ [BOT-${prefix}] MESSAGE TOO LONG: ${text.length} chars`);
+        return;
+      }
+
       let chat;
       try {
         chat = await message.getChat();
