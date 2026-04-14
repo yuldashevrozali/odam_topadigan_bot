@@ -5,6 +5,35 @@ const { TelegramClient } = require("telegram");
 const { StringSession } = require("telegram/sessions");
 const { NewMessage } = require("telegram/events");
 
+// ===== 🔧 HELPER FUNCTIONS (ENG YUQORIDA) =====
+
+// ID ni xavfsiz string ga aylantirish (BigInt uchun)
+function normalizeUserId(id) {
+  if (!id) return null;
+  return String(BigInt(id));
+}
+
+// Keyword/blacklist topish uchun helper
+function findMatch(text, arr) {
+  return arr.find((x) => text.includes(x));
+}
+
+// ENV larni o'qish uchun factory function ✅
+function makeEnv(prefix) {
+  const apiId = Number(process.env[`API_ID_${prefix}`]);
+  const apiHash = process.env[`API_HASH_${prefix}`];
+  const groupId = process.env[`GROUP_ID_${prefix}`];
+  const sessionString = process.env[`SESSION_STRING_${prefix}`];
+
+  if (!apiId || !apiHash || !groupId || !sessionString) {
+    throw new Error(
+      `❌ ENV yetarli emas: API_ID_${prefix}, API_HASH_${prefix}, GROUP_ID_${prefix}, SESSION_STRING_${prefix}`
+    );
+  }
+
+  return { apiId, apiHash, groupId, sessionString };
+}
+
 // ===== WEB SERVER (Render healthcheck) =====
 const app = express();
 app.get("/", (req, res) => res.send("USERBOTS ALIVE ✅"));
@@ -19,18 +48,18 @@ const KEYWORDS = [
   "taksi chaqir","taxi chaqir","taksi chaqiring","taksi yuboring",
   "yuk bor","yuk tashish","yuk yetkazish","pochta bor","pochta tashish",
   "odam bor","kishi bor","1 kishi","2 kishi","3 kishi","4 kishi","5 kishi",
-  "ikki kishimiz","uch kishimiz","o‘zim boraman",
+  "ikki kishimiz","uch kishimiz","o'zim boraman",
   "srochni","shoshilinch","tez ketish kerak","tez borish kerak",
   "taksi","taxi kerak","yuk","pochta bor","haydovchi kerak","mashina kerak",
   "taksi ker","taxi ker","taksi kera","yuk boru","odam boru",
-  "taksi kerak aka","taksi bormi aka","кетишим керак","боришим керак",
+  "taksi kerak aka","taksi bormi aka","kетишим керак","боришим керак",
 ];
 
 // ===== BLACKLIST =====
 const BLACKLIST = [
   "kishi kerak","киши керак","avto moshina","авто мошина",
   "pochta olaman","почта оламан","yuk olaman","юк оламан",
-  "pochta ham olamiz","почта ҳам оламиз","mahsulot","БАГАЧ БОР","Aksiya narxi","1 TA ODAM KAM",
+  "pochta ham olamiz","почта ҳам оламиз","mahsulot","BAGAJ BOR","Aksiya narxi","1 TA ODAM KAM",
   "srochni yuramiz","srochni ketamiz","srochniy yuramiz","srochniga yuramiz",
   "odam qo'shish","1 odam kerak","2 odam kerak","3 odam kerak","odam kerak","manzildan","avto",
   "joyimiz bor","odam pochta","poshda olamiz","onix taksi","taksi bar","adam poshta bolsa","1 kishi kera",
@@ -44,24 +73,12 @@ const BLACKLIST = [
   "1 kishi kere","POʻCHTA OLAMIZ","pochta olamiz","pochta olamiz","ODAM POSHTA OLMIZ","ODAM KAM","ПОЧТА ОЛАМИЗ","ISHCHI KERAK","ta kam","TA KAM","BAGAJ BOR",
 ];
 
-// ===== USER FORWARD LIMITS =====
-// userId (string) -> array of timestamps
-const userForwardLimits = new Map();
+// ===== USER FORWARD LIMITS (global Map) =====
+const userForwardLimits = new Map(); // userId (string) -> array of timestamps
 
-// ===== helper =====
-function findMatch(text, arr) {
-  return arr.find((x) => text.includes(x));
-}
-
-// ===== ID ni xavfsiz string ga aylantirish =====
-function normalizeUserId(id) {
-  if (!id) return null;
-  // BigInt yoki number bo'lsa ham to'g'ri ishlaydi
-  return String(BigInt(id));
-}
-
+// ===== MAIN USERBOT FUNCTION =====
 async function startUserbot(prefix) {
-  const { apiId, apiHash, groupId, sessionString } = makeEnv(prefix);
+  const { apiId, apiHash, groupId, sessionString } = makeEnv(prefix); // ✅ Endi topadi!
 
   const client = new TelegramClient(
     new StringSession(sessionString),
@@ -112,7 +129,7 @@ async function startUserbot(prefix) {
       // ===== MAʼLUMOT =====
       const sender = await message.getSender();
       const rawUserId = sender?.id;
-      const userId = normalizeUserId(rawUserId); // ✅ Normalizatsiya
+      const userId = normalizeUserId(rawUserId); // ✅ BigInt-safe
 
       if (!userId) {
         console.log(`⚠️ [BOT-${prefix}] UserId topilmadi, skip`);
@@ -127,7 +144,7 @@ async function startUserbot(prefix) {
       // Faqat so'nggi 24 soatliklarni qoldir
       timestamps = timestamps.filter(ts => now - ts < oneDayMs);
       
-      // 🧪 DEBUG: limit holatini ko'rish
+      // 🧪 DEBUG log
       console.log(`📊 [BOT-${prefix}] User ${userId} | oldingi forwardlar: ${timestamps.length}/3`);
       
       if (timestamps.length >= 3) {
@@ -182,16 +199,31 @@ async function startUserbot(prefix) {
     }
   }, 60 * 1000);
 
+  // ===== XOTIRA TOZALASH (har 1 soatda) =====
+  setInterval(() => {
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    for (const [uid, tsArr] of userForwardLimits.entries()) {
+      const fresh = tsArr.filter(ts => now - ts < oneDayMs);
+      if (fresh.length === 0) {
+        userForwardLimits.delete(uid);
+      } else {
+        userForwardLimits.set(uid, fresh);
+      }
+    }
+  }, 60 * 60 * 1000);
+
   return client;
 }
 
 // ===== START 2 TA BOT =====
 (async () => {
-  // 1-bot
-  await startUserbot("1");
-
-  // 2-bot
-  await startUserbot("2");
-
-  console.log("🚀 Ikki userbot ham ishga tushdi.");
+  try {
+    await startUserbot("1");
+    await startUserbot("2");
+    console.log("🚀 Ikki userbot ham ishga tushdi.");
+  } catch (err) {
+    console.error("❌ Botlarni ishga tushirishda xato:", err.message);
+    process.exit(1);
+  }
 })();
