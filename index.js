@@ -5,20 +5,17 @@ const { TelegramClient } = require("telegram");
 const { StringSession } = require("telegram/sessions");
 const { NewMessage } = require("telegram/events");
 
-// ===== 🔧 HELPER FUNCTIONS (ENG YUQORIDA) =====
+// ===== 🔧 HELPER FUNCTIONS =====
 
-// ID ni xavfsiz string ga aylantirish (BigInt uchun)
 function normalizeUserId(id) {
   if (!id) return null;
   return String(BigInt(id));
 }
 
-// Keyword/blacklist topish uchun helper
 function findMatch(text, arr) {
   return arr.find((x) => text.includes(x));
 }
 
-// ENV larni o'qish uchun factory function ✅
 function makeEnv(prefix) {
   const apiId = Number(process.env[`API_ID_${prefix}`]);
   const apiHash = process.env[`API_HASH_${prefix}`];
@@ -35,13 +32,13 @@ function makeEnv(prefix) {
   return { apiId, apiHash, groupId, sessionString, adminId };
 }
 
-// ===== WEB SERVER (Render healthcheck) =====
+// ===== WEB SERVER =====
 const app = express();
 app.get("/", (req, res) => res.send("USERBOTS ALIVE ✅"));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("🌐 Web server alive on port", PORT));
 
-// ===== KEYWORDS =====
+// ===== KEYWORDS & BLACKLIST =====
 const KEYWORDS = [
   "taksi kerak","taxi kerak","такси керак","taksi kerek","taksi kere",
   "taksi bormi","taxi bormi","такси борми","taksi bormu",
@@ -56,7 +53,6 @@ const KEYWORDS = [
   "taksi kerak aka","taksi bormi aka","kетишим керак","боришим керак",
 ];
 
-// ===== BLACKLIST =====
 const BLACKLIST = [
   "kishi kerak","киши керак","avto moshina","авто мошина",
   "pochta olaman","почта оламан","yuk olaman","юк оламан",
@@ -74,15 +70,44 @@ const BLACKLIST = [
   "1 kishi kere","POʻCHTA OLAMIZ","pochta olamiz","pochta olamiz","ODAM POSHTA OLMIZ","ODAM KAM","ПОЧТА ОЛАМИЗ","ISHCHI KERAK","ta kam","TA KAM","BAGAJ BOR",
 ];
 
-// ===== USER FORWARD LIMITS (global Map) =====
-const userForwardLimits = new Map(); // userId (string) -> array of timestamps
+// ===== GLOBAL STATE =====
+const userForwardLimits = new Map(); 
+const bannedUsers = new Set(); 
 
-// ===== BANNED USERS (global Set) =====
-const bannedUsers = new Set(); // userIds or usernames
+// ===== ADMIN COMMANDS HELPER =====
+// Bu funksiya buyruqlarni qayta ishlaydi va javob beradi
+async function handleAdminCommand(client, prefix, text, chatId, adminId) {
+  const parts = text.trim().split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const arg = parts[1];
+
+  if (!arg) {
+    await client.sendMessage(chatId, { message: `❌ Noto'g'ri foydalanish. Masalan: ${cmd} @username yoki /${cmd} 123456` });
+    return;
+  }
+
+  // @ belgisini olib tashlash
+  const targetId = arg.startsWith('@') ? arg.slice(1) : arg;
+
+  if (cmd === '/ban') {
+    bannedUsers.add(targetId);
+    await client.sendMessage(chatId, { message: `✅ [BOT-${prefix}] Banned: ${targetId}` });
+    console.log(`🔨 [BOT-${prefix}] Banned: ${targetId}`);
+    
+  } else if (cmd === '/check') {
+    const isBanned = bannedUsers.has(targetId);
+    await client.sendMessage(chatId, { message: `🔍 [BOT-${prefix}] ${targetId}: ${isBanned ? '🚫 BANNED' : '✅ Not Banned'}` });
+    
+  } else if (cmd === '/unban') {
+    bannedUsers.delete(targetId);
+    await client.sendMessage(chatId, { message: `✅ [BOT-${prefix}] Unbanned: ${targetId}` });
+    console.log(`🔓 [BOT-${prefix}] Unbanned: ${targetId}`);
+  }
+}
 
 // ===== MAIN USERBOT FUNCTION =====
 async function startUserbot(prefix) {
-  const { apiId, apiHash, groupId, sessionString, adminId } = makeEnv(prefix); // ✅ Endi topadi!
+  const { apiId, apiHash, groupId, sessionString, adminId } = makeEnv(prefix);
 
   const client = new TelegramClient(
     new StringSession(sessionString),
@@ -101,15 +126,28 @@ async function startUserbot(prefix) {
       if (!message?.message) return;
 
       const text = message.message.toLowerCase().trim();
+      const sender = await message.getSender();
+      if (!sender) return;
+      
+      // Sender ID ni normalizatsiya qilish (admin tekshiruvi uchun)
+      const senderId = normalizeUserId(sender.id);
 
-      // 0) Agar xabar 130 belgidan uzun bo'lsa — SKIP
+      // 🔥 1. ADMIN BUYRUQLARINI TEKSHIRISH (ENG MUHIM QISM)
+      // Agar xabar yuboruvchi ADMIN bo'lsa, buyruqlarni ishlatamiz
+      if (senderId === normalizeUserId(adminId)) {
+        if (text.startsWith('/ban') || text.startsWith('/check') || text.startsWith('/unban')) {
+          // Javobni qayerga yuborish: xususiy chatmi yoki guruhmi?
+          const replyTo = message.isPrivate ? senderId : groupId;
+          await handleAdminCommand(client, prefix, text, replyTo, adminId);
+          return; // Buyruq bajarildi, keyingi kodga o'tmaymiz
+        }
+      }
+
+      // 0) Xabar uzunligi tekshiruvi
       if (text.length > 130) {
         console.log(`⛔ [BOT-${prefix}] MESSAGE TOO LONG: ${text.length} chars`);
         return;
       }
-
-      const sender = await message.getSender();
-      if (!sender) return;
 
       let chat;
       try {
@@ -119,52 +157,33 @@ async function startUserbot(prefix) {
       }
       if (!chat) return;
 
-      // 🔒 O'z guruhimizdan kelgan bo'lsa — admin commands yoki SKIP
-      if (String(chat.id) === String(groupId)) {
-        if (String(sender.id) === String(adminId)) {
-          const parts = text.trim().split(/\s+/);
-          const cmd = parts[0];
-          const arg = parts[1];
-          if (cmd === '/ban' && arg) {
-            const banId = arg.startsWith('@') ? arg.slice(1) : arg;
-            bannedUsers.add(banId);
-            await client.sendMessage(groupId, { message: `✅ Banned: ${banId}` });
-          } else if (cmd === '/check' && arg) {
-            const checkId = arg.startsWith('@') ? arg.slice(1) : arg;
-            const isBanned = bannedUsers.has(checkId);
-            await client.sendMessage(groupId, { message: `${checkId} ${isBanned ? 'banned' : 'not banned'}` });
-          } else if (cmd === '/unban' && arg) {
-            const unbanId = arg.startsWith('@') ? arg.slice(1) : arg;
-            bannedUsers.delete(unbanId);
-            await client.sendMessage(groupId, { message: `✅ Unbanned: ${unbanId}` });
-          }
-        }
-        return;
-      }
-
-      // 1) KEYWORDS bo'lishi shart
+      // 1) KEYWORDS tekshiruvi
       const keywordHit = findMatch(text, KEYWORDS);
       if (!keywordHit) return;
 
-      // 2) BLACKLIST'dan 1 ta bo'lsa ham olma (skip)
+      // 2) BLACKLIST tekshiruvi
       const blacklistHit = findMatch(text, BLACKLIST);
       if (blacklistHit) {
         console.log(`⛔ [BOT-${prefix}] BLACKLIST HIT:`, blacklistHit, "| TEXT:", text);
         return;
       }
 
-      // ===== MAʼLUMOT =====
+      // ===== MAʼLUMOTLARNI TAYYORLASH =====
       const rawUserId = sender?.id;
-      const userId = normalizeUserId(rawUserId); // ✅ BigInt-safe
+      const userId = normalizeUserId(rawUserId);
 
       if (!userId) {
         console.log(`⚠️ [BOT-${prefix}] UserId topilmadi, skip`);
         return;
       }
 
-      // 3) Banned user check
-      if (bannedUsers.has(userId) || (sender.username && bannedUsers.has(sender.username))) {
-        console.log(`⛔ [BOT-${prefix}] BANNED USER: ${userId} or ${sender.username}`);
+      // 3) Banned user check (Global Setdan tekshiramiz)
+      // Username yoki ID bo'yicha tekshirish
+      const username = sender?.username;
+      const isBanned = bannedUsers.has(userId) || (username && bannedUsers.has(username));
+      
+      if (isBanned) {
+        console.log(`⛔ [BOT-${prefix}] BANNED USER SKIP: ${userId} (@${username})`);
         return;
       }
 
@@ -173,21 +192,17 @@ async function startUserbot(prefix) {
       const now = Date.now();
       const oneDayMs = 24 * 60 * 60 * 1000;
       
-      // Faqat so'nggi 24 soatliklarni qoldir
       timestamps = timestamps.filter(ts => now - ts < oneDayMs);
-      
-      // 🧪 DEBUG log
-      console.log(`📊 [BOT-${prefix}] User ${userId} | oldingi forwardlar: ${timestamps.length}/3`);
       
       if (timestamps.length >= 3) {
         console.log(`⛔ [BOT-${prefix}] USER LIMIT REACHED: ${userId}`);
         return;
       }
 
-      const username = sender?.username ? `@${sender.username}` : "yo'q";
-      const firstName = sender?.firstName || "";
-      const lastName = sender?.lastName || "";
-      const fullName = [firstName, lastName].filter(Boolean).join(" ") || "Noma'lum";
+      // Forward qilish uchun ma'lumotlar
+      const senderFirstName = sender?.firstName || "";
+      const senderLastName = sender?.lastName || "";
+      const fullName = [senderFirstName, senderLastName].filter(Boolean).join(" ") || "Noma'lum";
       const phone = sender?.phone ? `+${sender.phone}` : "yo'q";
       const groupUsername = chat.username ? `@${chat.username}` : `ID:${chat.id}`;
 
@@ -199,7 +214,7 @@ async function startUserbot(prefix) {
       const forwardText = `[BOT-${prefix}]
 1. ID: ${userId}
 2. Ismi: ${fullName}
-3. Foydalanuvchi: ${username}
+3. Foydalanuvchi: ${username ? '@'+username : "yo'q"}
 4. Telefon raqami: ${phone}
 5. Guruh: ${groupUsername}
 6. Link: ${messageLink}
@@ -207,7 +222,6 @@ async function startUserbot(prefix) {
 
       await client.sendMessage(groupId, { message: forwardText });
       
-      // ✅ Yangi timestamp qo'shish va saqlash
       timestamps.push(now);
       userForwardLimits.set(userId, timestamps);
       
@@ -231,7 +245,7 @@ async function startUserbot(prefix) {
     }
   }, 60 * 1000);
 
-  // ===== XOTIRA TOZALASH (har 1 soatda) =====
+  // ===== XOTIRA TOZALASH =====
   setInterval(() => {
     const now = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
