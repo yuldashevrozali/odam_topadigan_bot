@@ -24,14 +24,15 @@ function makeEnv(prefix) {
   const apiHash = process.env[`API_HASH_${prefix}`];
   const groupId = process.env[`GROUP_ID_${prefix}`];
   const sessionString = process.env[`SESSION_STRING_${prefix}`];
+  const adminId = process.env[`ADMIN_ID_${prefix}`];
 
-  if (!apiId || !apiHash || !groupId || !sessionString) {
+  if (!apiId || !apiHash || !groupId || !sessionString || !adminId) {
     throw new Error(
-      `❌ ENV yetarli emas: API_ID_${prefix}, API_HASH_${prefix}, GROUP_ID_${prefix}, SESSION_STRING_${prefix}`
+      `❌ ENV yetarli emas: API_ID_${prefix}, API_HASH_${prefix}, GROUP_ID_${prefix}, SESSION_STRING_${prefix}, ADMIN_ID_${prefix}`
     );
   }
 
-  return { apiId, apiHash, groupId, sessionString };
+  return { apiId, apiHash, groupId, sessionString, adminId };
 }
 
 // ===== WEB SERVER (Render healthcheck) =====
@@ -76,9 +77,12 @@ const BLACKLIST = [
 // ===== USER FORWARD LIMITS (global Map) =====
 const userForwardLimits = new Map(); // userId (string) -> array of timestamps
 
+// ===== BANNED USERS (global Set) =====
+const bannedUsers = new Set(); // userIds or usernames
+
 // ===== MAIN USERBOT FUNCTION =====
 async function startUserbot(prefix) {
-  const { apiId, apiHash, groupId, sessionString } = makeEnv(prefix); // ✅ Endi topadi!
+  const { apiId, apiHash, groupId, sessionString, adminId } = makeEnv(prefix); // ✅ Endi topadi!
 
   const client = new TelegramClient(
     new StringSession(sessionString),
@@ -104,6 +108,9 @@ async function startUserbot(prefix) {
         return;
       }
 
+      const sender = await message.getSender();
+      if (!sender) return;
+
       let chat;
       try {
         chat = await message.getChat();
@@ -112,8 +119,28 @@ async function startUserbot(prefix) {
       }
       if (!chat) return;
 
-      // 🔒 O'z guruhimizdan kelgan bo'lsa — SKIP
-      if (String(chat.id) === String(groupId)) return;
+      // 🔒 O'z guruhimizdan kelgan bo'lsa — admin commands yoki SKIP
+      if (String(chat.id) === String(groupId)) {
+        if (sender.id === adminId) {
+          const parts = text.trim().split(/\s+/);
+          const cmd = parts[0];
+          const arg = parts[1];
+          if (cmd === '/ban' && arg) {
+            const banId = arg.startsWith('@') ? arg.slice(1) : arg;
+            bannedUsers.add(banId);
+            await client.sendMessage(groupId, { message: `✅ Banned: ${banId}` });
+          } else if (cmd === '/check' && arg) {
+            const checkId = arg.startsWith('@') ? arg.slice(1) : arg;
+            const isBanned = bannedUsers.has(checkId);
+            await client.sendMessage(groupId, { message: `${checkId} ${isBanned ? 'banned' : 'not banned'}` });
+          } else if (cmd === '/unban' && arg) {
+            const unbanId = arg.startsWith('@') ? arg.slice(1) : arg;
+            bannedUsers.delete(unbanId);
+            await client.sendMessage(groupId, { message: `✅ Unbanned: ${unbanId}` });
+          }
+        }
+        return;
+      }
 
       // 1) KEYWORDS bo'lishi shart
       const keywordHit = findMatch(text, KEYWORDS);
@@ -127,7 +154,6 @@ async function startUserbot(prefix) {
       }
 
       // ===== MAʼLUMOT =====
-      const sender = await message.getSender();
       const rawUserId = sender?.id;
       const userId = normalizeUserId(rawUserId); // ✅ BigInt-safe
 
@@ -136,7 +162,13 @@ async function startUserbot(prefix) {
         return;
       }
 
-      // 3) User forward limit: 3 ta kuniga
+      // 3) Banned user check
+      if (bannedUsers.has(userId) || (sender.username && bannedUsers.has(sender.username))) {
+        console.log(`⛔ [BOT-${prefix}] BANNED USER: ${userId} or ${sender.username}`);
+        return;
+      }
+
+      // 4) User forward limit: 3 ta kuniga
       let timestamps = userForwardLimits.get(userId) || [];
       const now = Date.now();
       const oneDayMs = 24 * 60 * 60 * 1000;
