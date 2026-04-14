@@ -121,7 +121,7 @@ async function startUserbot(prefix) {
 
       // 🔒 O'z guruhimizdan kelgan bo'lsa — admin commands yoki SKIP
       if (String(chat.id) === String(groupId)) {
-        if (sender.id === adminId) {
+        if (String(sender.id) === String(adminId)) {
           const parts = text.trim().split(/\s+/);
           const cmd = parts[0];
           const arg = parts[1];
