@@ -41,8 +41,11 @@ const BLACKLIST = [
   "srochni getamiz","moshin bor","pochta olomon","odam olamiz","yuramiz","ayollar bor","1 ta kam",
   "#yuramiz","pochta xizmati bor","yuriladi","taxi bor","pochta ham olamiz","mashin bor",
   "2 kishi kerak","taxi bar","1 kishi kere","pochta xam olamiz","poshtaxam olamiz","2 kishi kk",
-  "1 kishi kere","POʻCHTA OLAMIZ","pochta olamiz","pochta olamiz","ODAM POSHTA OLMIZ","ODAM KAM","ПОЧТА ОЛАМИЗ","ISHCHI KERAK","ta kam","TA KAM",
+  "1 kishi kere","POʻCHTA OLAMIZ","pochta olamiz","pochta olamiz","ODAM POSHTA OLMIZ","ODAM KAM","ПОЧТА ОЛАМИЗ","ISHCHI KERAK","ta kam","TA KAM","BAGAJ BOR",
 ];
+
+// ===== USER FORWARD LIMITS =====
+const userForwardLimits = new Map(); // userId -> array of timestamps
 
 // ===== helper =====
 function findMatch(text, arr) {
@@ -117,6 +120,17 @@ async function startUserbot(prefix) {
       // ===== MAʼLUMOT =====
       const sender = await message.getSender();
       const userId = sender?.id;
+
+      // 3) User forward limit: 3 ta kuniga
+      let timestamps = userForwardLimits.get(userId) || [];
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      timestamps = timestamps.filter(ts => now - ts < oneDayMs);
+      if (timestamps.length >= 3) {
+        console.log(`⛔ [BOT-${prefix}] USER LIMIT REACHED: ${userId} (${timestamps.length})`);
+        return;
+      }
+
       const username = sender?.username ? `@${sender.username}` : "yo'q";
       const firstName = sender?.firstName || "";
       const lastName = sender?.lastName || "";
@@ -139,6 +153,8 @@ async function startUserbot(prefix) {
 7. Xabar: ${message.message}`;
 
       await client.sendMessage(groupId, { message: forwardText });
+      timestamps.push(now);
+      userForwardLimits.set(userId, timestamps);
       console.log(`✅ [BOT-${prefix}] FORWARDED | keyword:`, keywordHit);
     } catch (e) {
       console.log(`❌ [BOT-${prefix}] handler error:`, e?.message || e);
