@@ -45,27 +45,19 @@ const BLACKLIST = [
 ];
 
 // ===== USER FORWARD LIMITS =====
-const userForwardLimits = new Map(); // userId -> array of timestamps
+// userId (string) -> array of timestamps
+const userForwardLimits = new Map();
 
 // ===== helper =====
 function findMatch(text, arr) {
   return arr.find((x) => text.includes(x));
 }
 
-// ===== factory: bitta userbot start qiladigan funksiya =====
-function makeEnv(prefix) {
-  const apiId = Number(process.env[`API_ID_${prefix}`]);
-  const apiHash = process.env[`API_HASH_${prefix}`];
-  const groupId = process.env[`GROUP_ID_${prefix}`]; // string
-  const sessionString = process.env[`SESSION_STRING_${prefix}`];
-
-  if (!apiId || !apiHash || !groupId || !sessionString) {
-    throw new Error(
-      `❌ ENV yetarli emas: API_ID_${prefix}, API_HASH_${prefix}, GROUP_ID_${prefix}, SESSION_STRING_${prefix}`
-    );
-  }
-
-  return { apiId, apiHash, groupId, sessionString };
+// ===== ID ni xavfsiz string ga aylantirish =====
+function normalizeUserId(id) {
+  if (!id) return null;
+  // BigInt yoki number bo'lsa ham to'g'ri ishlaydi
+  return String(BigInt(id));
 }
 
 async function startUserbot(prefix) {
@@ -103,7 +95,7 @@ async function startUserbot(prefix) {
       }
       if (!chat) return;
 
-      // 🔒 O‘z guruhimizdan kelgan bo‘lsa — SKIP (har bot o‘z GROUP_ID sini tekshiradi)
+      // 🔒 O'z guruhimizdan kelgan bo'lsa — SKIP
       if (String(chat.id) === String(groupId)) return;
 
       // 1) KEYWORDS bo'lishi shart
@@ -119,15 +111,27 @@ async function startUserbot(prefix) {
 
       // ===== MAʼLUMOT =====
       const sender = await message.getSender();
-      const userId = sender?.id;
+      const rawUserId = sender?.id;
+      const userId = normalizeUserId(rawUserId); // ✅ Normalizatsiya
+
+      if (!userId) {
+        console.log(`⚠️ [BOT-${prefix}] UserId topilmadi, skip`);
+        return;
+      }
 
       // 3) User forward limit: 3 ta kuniga
       let timestamps = userForwardLimits.get(userId) || [];
       const now = Date.now();
       const oneDayMs = 24 * 60 * 60 * 1000;
+      
+      // Faqat so'nggi 24 soatliklarni qoldir
       timestamps = timestamps.filter(ts => now - ts < oneDayMs);
+      
+      // 🧪 DEBUG: limit holatini ko'rish
+      console.log(`📊 [BOT-${prefix}] User ${userId} | oldingi forwardlar: ${timestamps.length}/3`);
+      
       if (timestamps.length >= 3) {
-        console.log(`⛔ [BOT-${prefix}] USER LIMIT REACHED: ${userId} (${timestamps.length})`);
+        console.log(`⛔ [BOT-${prefix}] USER LIMIT REACHED: ${userId}`);
         return;
       }
 
@@ -153,15 +157,19 @@ async function startUserbot(prefix) {
 7. Xabar: ${message.message}`;
 
       await client.sendMessage(groupId, { message: forwardText });
+      
+      // ✅ Yangi timestamp qo'shish va saqlash
       timestamps.push(now);
       userForwardLimits.set(userId, timestamps);
-      console.log(`✅ [BOT-${prefix}] FORWARDED | keyword:`, keywordHit);
+      
+      console.log(`✅ [BOT-${prefix}] FORWARDED | keyword: ${keywordHit} | user: ${userId} | (${timestamps.length}/3)`);
+      
     } catch (e) {
       console.log(`❌ [BOT-${prefix}] handler error:`, e?.message || e);
     }
   }, new NewMessage({}));
 
-  // ===== AUTO RECONNECT (har bot alohida) =====
+  // ===== AUTO RECONNECT =====
   setInterval(async () => {
     try {
       if (!client.connected) {
